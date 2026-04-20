@@ -1,0 +1,28 @@
+# Virtualenv
+.venv/
+venv/
+
+# Downloaded datasets and extracted archives (root-level data/ only, not src/data/)
+/data/
+
+# Model caches / run artifacts
+/outputs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
