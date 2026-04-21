@@ -9,6 +9,9 @@ venv/
 /outputs/
 *.log
 
+# SLURM job logs
+jobs/logs/
+
 # Python
 __pycache__/
 *.pyc

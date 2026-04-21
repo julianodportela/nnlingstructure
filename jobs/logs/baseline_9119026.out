@@ -1,5 +1,0 @@
-[info] device=cpu
-[info] downloading FLORES-200 from https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz
-[info] extracting /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nnling_data/flores200_dataset.tar.gz
-[info] loaded 1012 FLORES-200 devtest pairs
-[info] loading model: facebook/nllb-200-distilled-600M
