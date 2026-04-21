@@ -82,6 +82,8 @@ def main():
     ap.add_argument("--max-new-tokens", type=int, default=256)
     ap.add_argument("--output-dir", default="outputs/baseline")
     ap.add_argument("--data-dir", default="data")
+    ap.add_argument("--model-path", default=None,
+                    help="Path to a fine-tuned checkpoint dir; defaults to the pretrained NLLB-200")
     args = ap.parse_args()
 
     device = pick_device()
@@ -90,9 +92,11 @@ def main():
     pairs = load_flores_pair(Path(args.data_dir), args.split, args.limit)
     print(f"[info] loaded {len(pairs)} FLORES-200 {args.split} pairs")
 
-    print(f"[info] loading model: {MODEL_NAME}")
+    model_source = args.model_path if args.model_path else MODEL_NAME
+    print(f"[info] loading model: {model_source}")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, src_lang=SRC_LANG)
-    model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME).to(device).eval()
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_source).to(device).eval()
+    model.generation_config.max_length = None  # avoid max_new_tokens/max_length conflict warning
 
     hypotheses: list[str] = []
     references: list[str] = [tgt for _, tgt in pairs]
@@ -124,7 +128,7 @@ def main():
     (out_dir / f"metrics.{tag}.json").write_text(
         json.dumps(
             {
-                "model": MODEL_NAME,
+                "model": model_source,
                 "split": args.split,
                 "n": len(hypotheses),
                 "num_beams": args.num_beams,

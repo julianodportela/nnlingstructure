@@ -1,12 +1,12 @@
-"""Joint MTL dataset: translation + syntactic parsing.
+"""Joint MTL dataset: translation + supertagging.
 
 Provides a PyTorch-compatible interleaved iterator over two datasets (translation
-and parsing), each example tagged with its task. A collator tokenises using the
-NLLB tokenizer and sets the correct forced_bos / src_lang for each task.
+and supertagging), each example tagged with its task. A collator tokenises using
+the NLLB tokenizer and sets the correct forced_bos / src_lang for each task.
 
-For the parsing task we keep source and target language both as Basque
+For the supertagging task we keep source and target language both as Basque
 (`eus_Latn`) so that the encoder sees Basque input and the decoder generates
-Basque-annotated output — NLLB has no dedicated "parse" language code, so we
+the supertag sequence — NLLB has no dedicated supertag language code, so we
 reuse the target language of the treebank.
 """
 from __future__ import annotations
@@ -19,7 +19,7 @@ import torch
 from torch.utils.data import Dataset
 
 TASK_TRANSLATE = "translate"
-TASK_PARSE = "parse"
+TASK_SUPERTAG = "supertag"
 
 SPA = "spa_Latn"
 EUS = "eus_Latn"
@@ -35,27 +35,27 @@ class JointExample:
 
 
 class JointMTLDataset(Dataset):
-    """Interleave parallel translation pairs with parsing pairs.
+    """Interleave parallel translation pairs with supertagging pairs.
 
-    Sampling is weighted: at each index we pick from the translation or parsing
-    pool with probability proportional to `translate_weight` / (1 - weight).
-    This gives a deterministic virtual length equal to the sum of both pools,
-    while letting the caller control the task mix via the weight.
+    Sampling is weighted: at each index we pick from the translation or
+    supertagging pool with probability proportional to `translate_weight` /
+    (1 - weight). This gives a deterministic virtual length equal to the sum of
+    both pools, while letting the caller control the task mix via the weight.
     """
 
     def __init__(
         self,
         translation: Dataset,
-        parsing: Dataset,
+        supertagging: Dataset,
         translate_weight: float = 0.8,
         seed: int = 0,
     ) -> None:
         assert 0.0 < translate_weight < 1.0
         self.translation = translation
-        self.parsing = parsing
+        self.supertagging = supertagging
         self.translate_weight = translate_weight
         self._rng = random.Random(seed)
-        self._virtual_len = len(translation) + len(parsing)
+        self._virtual_len = len(translation) + len(supertagging)
 
         # Pre-compute a task schedule for reproducibility across epochs.
         self._schedule: list[tuple[str, int]] = []
@@ -65,14 +65,14 @@ class JointMTLDataset(Dataset):
             if pick_translate and t_idx < len(translation):
                 self._schedule.append((TASK_TRANSLATE, t_idx % len(translation)))
                 t_idx += 1
-            elif not pick_translate and p_idx < len(parsing):
-                self._schedule.append((TASK_PARSE, p_idx % len(parsing)))
+            elif not pick_translate and p_idx < len(supertagging):
+                self._schedule.append((TASK_SUPERTAG, p_idx % len(supertagging)))
                 p_idx += 1
             elif t_idx < len(translation):
                 self._schedule.append((TASK_TRANSLATE, t_idx % len(translation)))
                 t_idx += 1
             else:
-                self._schedule.append((TASK_PARSE, p_idx % len(parsing)))
+                self._schedule.append((TASK_SUPERTAG, p_idx % len(supertagging)))
                 p_idx += 1
 
     def __len__(self) -> int:
@@ -86,19 +86,36 @@ class JointMTLDataset(Dataset):
                 source=row["source"], target=row["target"], task=TASK_TRANSLATE,
                 src_lang=SPA, tgt_lang=EUS,
             )
-        row = self.parsing[inner]
+        row = self.supertagging[inner]
         return JointExample(
-            source=row["source"], target=row["target"], task=TASK_PARSE,
+            source=row["source"], target=row["target"], task=TASK_SUPERTAG,
             src_lang=EUS, tgt_lang=EUS,
         )
+
+
+def model_inputs(batch: dict) -> dict:
+    """Return only the keys that Seq2SeqLM.forward() accepts.
+
+    The collator attaches `task` and `forced_bos_token_id` for training-loop
+    use, but passing them to model(**batch) raises an unexpected-keyword error.
+    Call this before the forward pass:
+
+        outputs = model(**model_inputs(batch))
+    """
+    return {k: batch[k] for k in ("input_ids", "attention_mask", "labels")}
 
 
 def build_joint_collator(tokenizer, max_length: int = 256):
     """Return a collator that tokenises a batch of JointExamples.
 
     Groups examples by src_lang so the tokenizer's src_lang / forced_bos is set
-    correctly per sub-batch. The collator returns a single padded tensor dict
-    spanning the whole batch, with an extra `task` list for loss routing.
+    correctly per sub-batch. The collator returns a dict with:
+      - input_ids, attention_mask, labels  — model training inputs
+      - task                               — list of "translate"/"supertag" for loss routing
+      - forced_bos_token_id               — per-example BOS token for generation
+
+    Pass the batch through model_inputs(batch) before model(**...) to strip the
+    non-model keys.
     """
 
     pad_id = tokenizer.pad_token_id
@@ -114,7 +131,7 @@ def build_joint_collator(tokenizer, max_length: int = 256):
         return enc
 
     def collate(batch: list[JointExample]) -> dict:
-        # Partition by source language (parse=eus, translate=spa).
+        # Partition by source language (supertag=eus, translate=spa).
         groups: dict[str, list[JointExample]] = {}
         for ex in batch:
             groups.setdefault(ex.src_lang, []).append(ex)

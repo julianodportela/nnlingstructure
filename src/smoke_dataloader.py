@@ -2,7 +2,8 @@
 
 Downloads UD_Basque-BDT + Tatoeba Es-Eu, constructs a JointMTLDataset, wraps it
 in a DataLoader with the NLLB tokenizer collator, and prints a few batches to
-confirm end-to-end shape.
+confirm end-to-end shape. The UD dataset is loaded with fmt="supertag" (UPOS +
+FEATS per token), which is the auxiliary task used for MTL fine-tuning.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from transformers import AutoTokenizer
 from data import (
     BasqueUDDataset,
     JointMTLDataset,
-    TASK_PARSE,
+    TASK_SUPERTAG,
     TASK_TRANSLATE,
     TatoebaEsEuDataset,
     build_joint_collator,
@@ -34,14 +35,14 @@ def main():
 
     data_dir = Path(args.data_dir)
     print("[info] loading Basque UD (train split)…")
-    parsing = BasqueUDDataset(data_dir=data_dir, split="train", fmt="pos+deprel", limit=128)
-    print(f"[info] parse examples: {len(parsing)}")
+    supertagging = BasqueUDDataset(data_dir=data_dir, split="train", fmt="supertag", limit=128)
+    print(f"[info] supertagging examples: {len(supertagging)}")
 
     print("[info] loading Tatoeba spa-eus (train split)…")
     translation = TatoebaEsEuDataset(data_dir=data_dir, split="train", limit=args.tl_limit)
     print(f"[info] translation examples: {len(translation)}")
 
-    joint = JointMTLDataset(translation=translation, parsing=parsing, translate_weight=0.7)
+    joint = JointMTLDataset(translation=translation, supertagging=supertagging, translate_weight=0.7)
     print(f"[info] joint dataset size: {len(joint)}")
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -50,7 +51,7 @@ def main():
         joint, batch_size=args.batch_size, shuffle=False, collate_fn=collate
     )
 
-    task_counts = {TASK_TRANSLATE: 0, TASK_PARSE: 0}
+    task_counts = {TASK_TRANSLATE: 0, TASK_SUPERTAG: 0}
     for i, batch in enumerate(loader):
         for t in batch["task"]:
             task_counts[t] += 1

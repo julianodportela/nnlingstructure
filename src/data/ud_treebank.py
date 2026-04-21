@@ -1,6 +1,10 @@
 """Basque Universal Dependency Treebank (UD_Basque-BDT) loader.
 
-Produces seq2seq-style (input_text, linearized_parse_target) pairs for MTL with NLLB.
+Produces seq2seq-style (input_text, supertag_target) pairs for MTL with NLLB.
+A supertag combines the UPOS tag with all morphological features (FEATS column)
+from the CONLLU file, e.g. `Etxera/NOUN|Case=All|Number=Sing`. This encodes
+syntactic category + morphosyntactic information without requiring a full parser.
+
 Downloads the treebank from the UniversalDependencies GitHub mirror if missing.
 """
 from __future__ import annotations
@@ -22,7 +26,7 @@ UD_FILES = {
     "test": "eu_bdt-ud-test.conllu",
 }
 
-ParseFormat = Literal["pos", "deprel", "pos+deprel"]
+ParseFormat = Literal["supertag", "pos", "deprel", "pos+deprel"]
 
 
 def download_ud_basque_bdt(data_dir: Path) -> Path:
@@ -48,7 +52,14 @@ def _linearize(tokens: list[dict], fmt: ParseFormat) -> str:
         form = tok["form"]
         upos = tok.get("upos") or "_"
         deprel = tok.get("deprel") or "_"
-        if fmt == "pos":
+        if fmt == "supertag":
+            feats = tok.get("feats") or {}
+            if feats:
+                feats_str = "|".join(f"{k}={v}" for k, v in feats.items())
+                parts.append(f"{form}/{upos}|{feats_str}")
+            else:
+                parts.append(f"{form}/{upos}")
+        elif fmt == "pos":
             parts.append(f"{form}/{upos}")
         elif fmt == "deprel":
             parts.append(f"{form}/{deprel}")
@@ -64,16 +75,18 @@ class ParseExample:
 
 
 class BasqueUDDataset(Dataset):
-    """Basque UD Treebank formatted as seq2seq parsing pairs.
+    """Basque UD Treebank formatted as seq2seq supertagging pairs.
 
-    Each item yields {"source": sentence_text, "target": linearized_parse}.
+    Each item yields {"source": sentence_text, "target": linearized_supertags}.
+    Default fmt="supertag" emits UPOS+FEATS per token, e.g.:
+        "Etxera/NOUN|Case=All|Number=Sing joango/VERB|Aspect=Prosp|..."
     """
 
     def __init__(
         self,
         data_dir: Path,
         split: str = "train",
-        fmt: ParseFormat = "pos+deprel",
+        fmt: ParseFormat = "supertag",
         limit: int | None = None,
     ) -> None:
         assert split in UD_FILES, f"unknown split: {split}"

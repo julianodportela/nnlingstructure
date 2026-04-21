@@ -1,6 +1,6 @@
 """Dry-run smoke test for the joint MTL data loader.
 
-Validates UD parsing load + collator + tokenizer using a tiny in-memory
+Validates UD supertagging load + collator + tokenizer using a tiny in-memory
 Spanish->Basque translation stub, so we can exercise the full pipeline shape
 without downloading the 1.1GB Tatoeba Challenge archive yet.
 """
@@ -15,7 +15,7 @@ from transformers import AutoTokenizer
 from data import (
     BasqueUDDataset,
     JointMTLDataset,
-    TASK_PARSE,
+    TASK_SUPERTAG,
     TASK_TRANSLATE,
     build_joint_collator,
 )
@@ -53,20 +53,20 @@ def main():
     ap.add_argument("--batches", type=int, default=4)
     args = ap.parse_args()
 
-    parsing = BasqueUDDataset(
-        data_dir=Path(args.data_dir), split="train", fmt="pos+deprel", limit=32
+    supertagging = BasqueUDDataset(
+        data_dir=Path(args.data_dir), split="train", fmt="supertag", limit=32
     )
     translation = _StubTranslationDataset(SPANISH_BASQUE_STUB)
-    print(f"[info] parsing={len(parsing)} translation_stub={len(translation)}")
+    print(f"[info] supertagging={len(supertagging)} translation_stub={len(translation)}")
 
-    joint = JointMTLDataset(translation=translation, parsing=parsing, translate_weight=0.5)
+    joint = JointMTLDataset(translation=translation, supertagging=supertagging, translate_weight=0.5)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     collate = build_joint_collator(tokenizer, max_length=96)
     loader = DataLoader(
         joint, batch_size=args.batch_size, shuffle=False, collate_fn=collate
     )
 
-    counts = {TASK_TRANSLATE: 0, TASK_PARSE: 0}
+    counts = {TASK_TRANSLATE: 0, TASK_SUPERTAG: 0}
     for i, batch in enumerate(loader):
         for t in batch["task"]:
             counts[t] += 1
