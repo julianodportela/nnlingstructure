@@ -26,7 +26,7 @@ UD_FILES = {
     "test": "eu_bdt-ud-test.conllu",
 }
 
-ParseFormat = Literal["supertag", "pos", "deprel", "pos+deprel"]
+ParseFormat = Literal["supertag", "supertag+deprel", "pos", "deprel", "pos+deprel"]
 
 
 def download_ud_basque_bdt(data_dir: Path) -> Path:
@@ -52,13 +52,14 @@ def _linearize(tokens: list[dict], fmt: ParseFormat) -> str:
         form = tok["form"]
         upos = tok.get("upos") or "_"
         deprel = tok.get("deprel") or "_"
-        if fmt == "supertag":
+        if fmt in ("supertag", "supertag+deprel"):
             feats = tok.get("feats") or {}
-            if feats:
-                feats_str = "|".join(f"{k}={v}" for k, v in feats.items())
-                parts.append(f"{form}/{upos}|{feats_str}")
+            feats_str = "|".join(f"{k}={v}" for k, v in feats.items()) if feats else ""
+            tag = f"{upos}|{feats_str}" if feats_str else upos
+            if fmt == "supertag+deprel":
+                parts.append(f"{form}/{tag}/{deprel}")
             else:
-                parts.append(f"{form}/{upos}")
+                parts.append(f"{form}/{tag}")
         elif fmt == "pos":
             parts.append(f"{form}/{upos}")
         elif fmt == "deprel":

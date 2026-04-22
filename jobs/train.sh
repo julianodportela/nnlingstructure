@@ -45,6 +45,7 @@ python src/train.py \
     --tatoeba-limit      100000 \
     --translate-weight   0.65 \
     --supertag-loss-weight 1.0 \
+    --supertag-fmt     supertag+deprel \
     --lr             2e-5 \
     --warmup-steps   500 \
     --batch-size     8 \
@@ -52,4 +53,4 @@ python src/train.py \
     --eval-num-beams 4 \
     --max-new-tokens 256 \
     --max-epochs     20 \
-    --patience       5
+    --patience       999

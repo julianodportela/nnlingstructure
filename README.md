@@ -5,129 +5,174 @@
 Final project for LING 3850. Team: Juliano Dantas Portela, Gbemiga Salu, Joe Zimmerman.
 
 We fine-tune Meta's `nllb-200-distilled-600M` on Basque (Euskara) using multi-task
-learning — jointly training on Spanish→Basque translation and Basque syntactic
-parsing — and measure whether the syntactic signal improves Basque translation
+learning — jointly training on Spanish→Basque translation and a Basque supertagging
+auxiliary task — and measure whether the syntactic signal improves Basque translation
 over the NLLB baseline on FLORES-200.
-
-See [docs/project.md](docs/project.md) for the full project spec, task
-breakdown, and references.
 
 ## Project status
 
-| step | description | owner | status |
-| --- | --- | --- | --- |
-| 1 | Baseline evaluation & data pipeline | Joe, Gbemiga | shipped in this repo |
-| 2 | Multi-task architecture & fine-tuning | Juliano, Joe | not started |
-| 3 | Final evaluation & linguistic analysis | Juliano, Gbemiga | not started |
-| 4 | Final report | everyone | not started |
-
-Step 1 produces:
-- A reproducible FLORES-200 Spanish→Basque eval harness for NLLB-200 that records BLEU + chrF with sacrebleu signatures.
-- A joint PyTorch data pipeline that interleaves Tatoeba Es-Eu parallel pairs with Basque UD Treebank parse pairs, emitting NLLB-ready batches with per-example `src_lang` / `forced_bos_token_id`.
+| step | description | status |
+| --- | --- | --- |
+| 1 | Baseline evaluation & data pipeline | done |
+| 2 | Multi-task architecture & fine-tuning | done |
+| 3 | Ergative-absolutive evaluation harness | done |
+| 4 | Final report | not started |
 
 ## Requirements
 
-- Python 3.11+ (tested on 3.13)
-- macOS (MPS) or Linux (CUDA) — CPU works but is slow
-- ~4 GB disk for the NLLB-200 distilled weights + ~1.2 GB for the Tatoeba archive
+- Python 3.11+
+- CUDA GPU for training and full evaluation (CPU is too slow)
+- ~4 GB disk for NLLB-200 weights, ~1.2 GB for the Tatoeba archive
 
 ## Setup
 
 ```bash
-cd final/code
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-Everything below assumes the venv is active (or prefixed with `.venv/bin/`).
-
 ## Usage
 
-### 1. Baseline translation eval (FLORES-200 Spanish → Basque)
-
-Smoke test on a small subset (~15 seconds on MPS after model download):
+### Baseline eval (FLORES-200 Spanish → Basque)
 
 ```bash
+# Smoke test
 .venv/bin/python src/baseline_eval.py --split dev --limit 8 \
     --batch-size 4 --num-beams 1 --max-new-tokens 128
-```
 
-Full FLORES-200 devtest (1012 sentences, beam=4, expect long wall time locally
-— intended to run on Bouchet for the final numbers):
-
-```bash
+# Full canonical benchmark (1,012 sentences)
 .venv/bin/python src/baseline_eval.py --split devtest \
     --batch-size 8 --num-beams 4 --max-new-tokens 256
 ```
 
-Outputs land in `outputs/baseline/`:
-- `hyp.<tag>.eus_Latn.txt` — model hypotheses
-- `ref.<tag>.eus_Latn.txt` — FLORES-200 Basque references
-- `src.<tag>.spa_Latn.txt` — Spanish sources
-- `metrics.<tag>.json` — BLEU, chrF, sacrebleu signatures, run config
+Outputs land in `outputs/baseline/`: hypotheses, references, sources, and a
+`metrics.<tag>.json` with BLEU, chrF, and sacrebleu signatures.
 
-### 2. Joint MTL data pipeline smoke tests
-
-Dry-run (no 1.1 GB Tatoeba download — uses a tiny in-memory Spanish-Basque stub
-+ real Basque UD Treebank):
+### Data pipeline smoke tests
 
 ```bash
+# Dry-run — no downloads, in-memory stubs
 .venv/bin/python src/smoke_dataloader_dry.py --batches 4
-```
 
-Full smoke against real Tatoeba + UD (downloads the 1.1 GB `eus-spa.tar` on
-first run):
-
-```bash
+# Full smoke — downloads ~1.1 GB Tatoeba archive on first run
 .venv/bin/python src/smoke_dataloader.py --tl-limit 128 --batches 3
 ```
 
-Both print sample batches with task tags, tokenised shapes, decoded
-source/target previews, and a task-mix histogram.
+### Training (Bouchet / SLURM)
+
+```bash
+sbatch jobs/train.sh
+```
+
+Trains for 20 epochs with joint cross-entropy loss on Spanish→Basque translation
+(Tatoeba, 100k pairs) and Basque supertagging (UD_Basque-BDT, ~5,396 sentences).
+The supertagging target uses `supertag+deprel` format — UPOS + morphological
+features + dependency relation per token, e.g.:
+`Gizonak/NOUN|Case=Erg|Number=Sing/nsubj sagarra/NOUN|Case=Abs|Number=Sing/obj`
+
+Per-epoch checkpoints and a `best/` checkpoint (highest FLORES-200 dev BLEU) are
+written to `$SCRATCH/nllb_checkpoints/run_<timestamp>/`. Final devtest BLEU/chrF
+is written to `outputs/finetuned/metrics.devtest.json`.
+
+Key flags for `src/train.py`:
+
+| flag | default | description |
+| --- | --- | --- |
+| `--supertag-fmt` | `supertag` | Supertagging target format. Use `supertag+deprel` for UPOS+FEATS+deprel (recommended). |
+| `--translate-weight` | `0.8` | Fraction of translation examples in the joint mix. |
+| `--supertag-loss-weight` | `1.0` | Loss weight for supertagging relative to translation. |
+| `--patience` | `3` | Early-stopping patience on FLORES-200 dev BLEU (`999` = disabled). |
+| `--max-epochs` | `20` | Maximum training epochs. |
+
+### Evaluation (Bouchet / SLURM)
+
+Build the ergative-absolutive test set once (requires UD + FLORES-200 in scratch):
+
+```bash
+python src/build_ergative_testset.py \
+    --data-dir $SCRATCH/nnling_data \
+    --output   eval/ergative_test.json
+```
+
+Run comprehensive evaluation (BLEU, chrF, ergative-absolutive alignment) on both
+baseline and fine-tuned models:
+
+```bash
+sbatch jobs/eval_full.sh
+```
+
+This runs four steps and prints a side-by-side comparison summary. Outputs land
+in `outputs/full_eval/`.
+
+To chain automatically after training:
+
+```bash
+TRAIN_JID=$(sbatch jobs/train.sh | awk '{print $4}')
+sbatch --dependency=afterok:$TRAIN_JID jobs/eval_full.sh
+```
+
+Note: `education_gpu` partition enforces `MaxSubmitPU=1` — only one job queued
+or running at a time. The `--dependency` flag requires the training job to have
+already finished before you can submit the eval job.
+
+## Ergative-absolutive evaluation
+
+`src/eval_ergative.py` measures case-marking accuracy beyond aggregate BLEU/chrF.
+The test set (`eval/ergative_test.json`) is built programmatically from:
+
+- **UD_Basque-BDT** — gold `Case=Erg` / `Case=Abs` annotations identify 1,518
+  unambiguous ergative forms and 3,976 absolutive forms.
+- **FLORES-200 devtest** — filtered to the 950 sentences whose Basque reference
+  contains at least one UD-attested case-marked form.
+
+For each sentence the evaluator checks: (a) **hit rate** — does the expected
+case-marked form appear in the model output? (b) **error rate** — does the
+wrong-case counterpart (e.g. absolutive where ergative was expected) appear?
 
 ## Layout
 
 ```
-final/code/
-├── README.md                  ← you are here
+.
+├── README.md
+├── CLAUDE.md                        ← project guidance for Claude Code
 ├── requirements.txt
-├── docs/
-│   └── project.md             ← detailed project spec + plan
+├── eval/
+│   └── ergative_test.json           ← generated by build_ergative_testset.py
+├── jobs/
+│   ├── train.sh                     ← SLURM: 20-epoch MTL fine-tuning
+│   ├── eval_full.sh                 ← SLURM: BLEU + chrF + ergative eval
+│   ├── eval_ergative.sh             ← SLURM: ergative eval only
+│   ├── baseline_eval.sh             ← SLURM: baseline FLORES-200 eval
+│   └── logs/                        ← SLURM stdout/stderr (git-ignored)
 ├── src/
-│   ├── baseline_eval.py       ← FLORES-200 eval harness for step 1
-│   ├── smoke_dataloader.py    ← full pipeline smoke (real Tatoeba)
-│   ├── smoke_dataloader_dry.py← fast pipeline smoke (stub translation)
+│   ├── train.py                     ← MTL fine-tuning loop
+│   ├── baseline_eval.py             ← FLORES-200 eval harness
+│   ├── build_ergative_testset.py    ← builds eval/ergative_test.json
+│   ├── eval_ergative.py             ← ergative-absolutive alignment eval
+│   ├── smoke_dataloader.py
+│   ├── smoke_dataloader_dry.py
 │   └── data/
 │       ├── __init__.py
-│       ├── ud_treebank.py     ← Basque UD BDT → seq2seq parse pairs
-│       ├── tatoeba.py         ← Tatoeba Challenge Es-Eu loader (streams + swaps direction)
-│       └── joint.py           ← JointMTLDataset + NLLB-aware collator
-└── outputs/ (git-ignored)     ← eval hypotheses + metrics
-└── data/    (git-ignored)     ← downloaded FLORES / Tatoeba / UD
+│       ├── ud_treebank.py           ← UD_Basque-BDT loader + supertag formats
+│       ├── tatoeba.py               ← Tatoeba Es-Eu streaming loader
+│       └── joint.py                 ← JointMTLDataset + NLLB-aware collator
+└── outputs/                         ← eval results (git-ignored)
+└── data/                            ← downloaded datasets (git-ignored)
 ```
 
 ## Datasets
 
-| dataset | split we use | purpose | source |
-| --- | --- | --- | --- |
-| FLORES-200 | `devtest` | eval (primary) | https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz |
-| Tatoeba Translation Challenge v2023-09-26 | `eus-spa` pair | Es→Eu translation fine-tuning | https://object.pouta.csc.fi/Tatoeba-Challenge-v2023-09-26/eus-spa.tar |
-| UD_Basque-BDT | `train`/`dev`/`test` | Basque parsing task | https://github.com/UniversalDependencies/UD_Basque-BDT |
+| dataset | split | purpose |
+| --- | --- | --- |
+| FLORES-200 | `devtest` | Primary eval (1,012 es→eu sentences) |
+| Tatoeba Challenge v2023-09-26 | `eus-spa/train` | Translation fine-tuning (~5.3M pairs, capped at 100k) |
+| UD_Basque-BDT | `train` / `dev` / `test` | Supertagging auxiliary task + ergative test set construction |
 
-All three are downloaded lazily on first use into `data/`. Note that the
-Tatoeba pair archive is 1.13 GB.
+All three download lazily into `data/` (git-ignored) on first use.
 
-## Notes for step 2 (MTL fine-tuning)
+## Key references
 
-`src/data/joint.py` already exposes everything the training loop should need:
-
-- `JointMTLDataset(translation, parsing, translate_weight=...)` — reproducible
-  interleaving, `__getitem__` returns a `JointExample` with `task`, `src_lang`,
-  `tgt_lang`.
-- `build_joint_collator(tokenizer, max_length=...)` — returns batches with
-  `input_ids`, `attention_mask`, `labels` (padded with `-100`), `task` list,
-  and per-example `forced_bos_token_id`.
-- `infinite_iter(loader)` — endless iterator for step-based training loops.
-
-The parse-task linearisation format (pos / deprel / pos+deprel) is switchable
-via `BasqueUDDataset(fmt=...)`.
+- Costa-jussà et al. 2022 — *No Language Left Behind* (NLLB model)
+- Niehues & Cho 2017 — *Exploiting Linguistic Resources for NMT Using Multi-task Learning*
+- Marvin & Linzen 2018 — *Targeted Syntactic Evaluation of LMs*
+- Artetxe et al. 2020 — *Translation Artifacts in Cross-lingual Transfer Learning*

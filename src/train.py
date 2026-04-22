@@ -250,6 +250,10 @@ def main() -> None:
                     help="Fraction of translation examples in the joint dataset mix")
     ap.add_argument("--supertag-loss-weight", type=float, default=1.0,
                     help="Loss weight for supertagging relative to translation (1.0 = equal 1:1)")
+    ap.add_argument("--supertag-fmt", default="supertag",
+                    choices=["supertag", "supertag+deprel", "pos", "deprel", "pos+deprel"],
+                    help="Supertagging target format. 'supertag+deprel' adds dependency relation "
+                         "to UPOS+FEATS, giving the model syntactic role alongside morphology.")
     ap.add_argument("--lr", type=float, default=2e-5)
     ap.add_argument("--warmup-steps", type=int, default=500)
     ap.add_argument("--batch-size", type=int, default=8)
@@ -273,7 +277,7 @@ def main() -> None:
     translation = TatoebaEsEuDataset(
         data_dir=data_dir, split="train", limit=args.tatoeba_limit
     )
-    supertagging = BasqueUDDataset(data_dir=data_dir, split="train", fmt="supertag")
+    supertagging = BasqueUDDataset(data_dir=data_dir, split="train", fmt=args.supertag_fmt)
     print(f"[info] translation={len(translation)}  supertagging={len(supertagging)}")
 
     joint = JointMTLDataset(
@@ -414,6 +418,7 @@ def main() -> None:
                 "batch_size": args.eval_batch_size,
                 "tatoeba_limit": args.tatoeba_limit,
                 "translate_weight": args.translate_weight,
+                "supertag_fmt": args.supertag_fmt,
                 "supertag_loss_weight": args.supertag_loss_weight,
                 "lr": args.lr,
                 "best_dev_bleu": best_bleu,
