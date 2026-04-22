@@ -35,12 +35,15 @@ if not torch.cuda.is_available():
 print(f'[cuda] OK  device={torch.cuda.get_device_name(0)}  torch={torch.__version__}', flush=True)
 "
 
+RUN_DIR=$SCRATCH/nllb_checkpoints/run_$(date +%Y%m%d_%H%M%S)
+echo "[info] checkpoint dir: $RUN_DIR"
+
 python src/train.py \
     --data-dir      $SCRATCH/nnling_data \
-    --checkpoint-dir $SCRATCH/nllb_checkpoints \
+    --checkpoint-dir $RUN_DIR \
     --output-dir    outputs/finetuned \
     --tatoeba-limit      100000 \
-    --translate-weight   0.8 \
+    --translate-weight   0.65 \
     --supertag-loss-weight 1.0 \
     --lr             2e-5 \
     --warmup-steps   500 \
@@ -49,4 +52,4 @@ python src/train.py \
     --eval-num-beams 4 \
     --max-new-tokens 256 \
     --max-epochs     20 \
-    --patience       3
+    --patience       5

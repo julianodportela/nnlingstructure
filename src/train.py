@@ -22,7 +22,7 @@ from tqdm import tqdm
 from transformers import (
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
-    get_linear_schedule_with_warmup,
+    get_cosine_schedule_with_warmup,
 )
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -301,7 +301,7 @@ def main() -> None:
     print(f"[info] {steps_per_epoch} steps/epoch  {total_steps} total planned steps")
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
-    scheduler = get_linear_schedule_with_warmup(
+    scheduler = get_cosine_schedule_with_warmup(
         optimizer,
         num_warmup_steps=args.warmup_steps,
         num_training_steps=total_steps,
