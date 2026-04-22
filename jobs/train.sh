@@ -15,7 +15,25 @@ export TRANSFORMERS_CACHE=$SCRATCH/hf_cache
 unset PYTHONPATH
 
 cd /home/ling3850_jdp69/nnlingstructure
+
+# Load CUDA 12.8 system libraries (driver version 12080 = CUDA 12.8 max).
+module load CUDA/12.8.0
+
 source .venv/bin/activate
+
+# If the wrong torch build is in the venv (e.g. after a fresh pip install -r), fix it.
+python -c "import torch; assert 'cu128' in torch.__version__" 2>/dev/null || \
+    pip install --quiet --force-reinstall --no-deps \
+        --index-url https://download.pytorch.org/whl/cu128 torch==2.11.0+cu128
+
+# Fast-fail: abort immediately rather than training silently on CPU for 23 hours.
+python -c "
+import torch, sys
+if not torch.cuda.is_available():
+    print(f'[ERROR] CUDA not available (torch {torch.__version__}, cuda={torch.version.cuda})', flush=True)
+    sys.exit(1)
+print(f'[cuda] OK  device={torch.cuda.get_device_name(0)}  torch={torch.__version__}', flush=True)
+"
 
 python src/train.py \
     --data-dir      $SCRATCH/nnling_data \
