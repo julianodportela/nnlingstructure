@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from data import (
     BasqueUDDataset,
     JointMTLDataset,
+    JointExample,
     TatoebaEsEuDataset,
     build_joint_collator,
     TASK_TRANSLATE,
@@ -246,8 +247,10 @@ def main() -> None:
     ap.add_argument("--output-dir", default="outputs/finetuned",
                     help="Where to write final devtest metrics and hypothesis files")
     ap.add_argument("--tatoeba-limit", type=int, default=100_000)
+    ap.add_argument("--translation-only", action="store_true",
+                    help="Fine-tune on translation data only — no supertagging auxiliary task")
     ap.add_argument("--translate-weight", type=float, default=0.8,
-                    help="Fraction of translation examples in the joint dataset mix")
+                    help="Fraction of translation examples in the joint dataset mix (ignored with --translation-only)")
     ap.add_argument("--supertag-loss-weight", type=float, default=1.0,
                     help="Loss weight for supertagging relative to translation (1.0 = equal 1:1)")
     ap.add_argument("--supertag-fmt", default="supertag",
@@ -277,14 +280,29 @@ def main() -> None:
     translation = TatoebaEsEuDataset(
         data_dir=data_dir, split="train", limit=args.tatoeba_limit
     )
-    supertagging = BasqueUDDataset(data_dir=data_dir, split="train", fmt=args.supertag_fmt)
-    print(f"[info] translation={len(translation)}  supertagging={len(supertagging)}")
 
-    joint = JointMTLDataset(
-        translation=translation,
-        supertagging=supertagging,
-        translate_weight=args.translate_weight,
-    )
+    if args.translation_only:
+        print(f"[info] translation-only mode  n={len(translation)}")
+
+        class _TranslationOnly(torch.utils.data.Dataset):
+            def __init__(self, ds):
+                self._ds = ds
+            def __len__(self):
+                return len(self._ds)
+            def __getitem__(self, idx):
+                row = self._ds[idx]
+                return JointExample(source=row["source"], target=row["target"],
+                                    task=TASK_TRANSLATE, src_lang=SRC_LANG, tgt_lang=TGT_LANG)
+
+        joint = _TranslationOnly(translation)
+    else:
+        supertagging = BasqueUDDataset(data_dir=data_dir, split="train", fmt=args.supertag_fmt)
+        print(f"[info] translation={len(translation)}  supertagging={len(supertagging)}")
+        joint = JointMTLDataset(
+            translation=translation,
+            supertagging=supertagging,
+            translate_weight=args.translate_weight,
+        )
 
     # --- Model and tokenizer ---
     print(f"[info] loading {MODEL_NAME}...")
@@ -417,9 +435,10 @@ def main() -> None:
                 "num_beams": args.eval_num_beams,
                 "batch_size": args.eval_batch_size,
                 "tatoeba_limit": args.tatoeba_limit,
-                "translate_weight": args.translate_weight,
-                "supertag_fmt": args.supertag_fmt,
-                "supertag_loss_weight": args.supertag_loss_weight,
+                "translation_only": args.translation_only,
+                "translate_weight": None if args.translation_only else args.translate_weight,
+                "supertag_fmt": None if args.translation_only else args.supertag_fmt,
+                "supertag_loss_weight": None if args.translation_only else args.supertag_loss_weight,
                 "lr": args.lr,
                 "best_dev_bleu": best_bleu,
                 "bleu": final["bleu"],
