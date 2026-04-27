@@ -1,0 +1,16 @@
+[cuda] OK  device=NVIDIA RTX 5000 Ada Generation  torch=2.11.0+cu128
+[info] checkpoint dir: /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/trans_only_20260423_140824
+[info] device=cuda
+[info] loading datasets...
+[info] translation-only mode  n=99606
+[info] loading facebook/nllb-200-distilled-600M...
+[info] 12451 steps/epoch  249020 total planned steps
+
+── epoch 0 / 19 ──
+[epoch 0] train_loss=1.0963
+[epoch 0] evaluating on FLORES-200 dev...
+[epoch 0] FLORES dev  BLEU=11.31  chrF=51.30
+[ckpt] saved epoch 0 → /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/trans_only_20260423_140824/epoch_0
+[ckpt] best → epoch 0
+
+── epoch 1 / 19 ──

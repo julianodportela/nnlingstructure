@@ -1,0 +1,5 @@
+[pipeline-2] waiting for training run 2 (job 9240058)...
+[pipeline-2] training run 2 done
+[pipeline-2] final eval submitted as job 9311585
+[pipeline-2] all jobs queued — pipeline complete
+[pipeline-2] results will land in outputs/full_eval/ when job 9311585 finishes

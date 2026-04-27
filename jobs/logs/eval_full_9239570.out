@@ -1,0 +1,70 @@
+[cuda] OK  device=NVIDIA RTX 5000 Ada Generation  torch=2.11.0+cu128
+[info] building ergative test set...
+[info] building UD case lookup (all splits)...
+[info] unambiguous forms: erg_only=1518  abs_only=3976
+[info] ensuring FLORES-200 is present...
+[info] filtering FLORES-200 devtest...
+[info] 950 sentences pass filter (112 with erg forms, 946 with abs forms)
+[info] wrote eval/ergative_test.json
+
+=== [1/4] Full devtest BLEU/chrF — baseline ===
+[info] device=cuda
+[info] loaded 1012 FLORES-200 devtest pairs
+[info] loading model: facebook/nllb-200-distilled-600M
+[result] BLEU = 10.67
+[result] chrF = 49.78
+[info] wrote outputs to outputs/full_eval/baseline
+
+=== [2/4] Full devtest BLEU/chrF — fine-tuned (/home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/best) ===
+[info] device=cuda
+[info] loaded 1012 FLORES-200 devtest pairs
+[info] loading model: /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/best
+[result] BLEU = 11.80
+[result] chrF = 51.94
+[info] wrote outputs to outputs/full_eval/finetuned
+
+=== [3/4] Ergative-absolutive alignment — baseline ===
+[info] device=cuda
+[info] loading model from facebook/nllb-200-distilled-600M...
+[info] loaded 950 test cases from eval/ergative_test.json
+
+── Ergative-Absolutive Alignment Evaluation ──
+  n=950  BLEU=10.74  chrF=49.69
+  Ergative sentences (112):
+    hit rate:   52.7%
+    error rate: 6.2%
+  Absolutive sentences (946):
+    hit rate:   83.3%
+    error rate: 1.4%
+
+[info] detailed results → outputs/full_eval/baseline_ergative/
+
+=== [4/4] Ergative-absolutive alignment — fine-tuned (/home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/best) ===
+[info] device=cuda
+[info] loading model from /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/best...
+[info] loaded 950 test cases from eval/ergative_test.json
+
+── Ergative-Absolutive Alignment Evaluation ──
+  n=950  BLEU=11.91  chrF=51.85
+  Ergative sentences (112):
+    hit rate:   52.7%
+    error rate: 4.5%
+  Absolutive sentences (946):
+    hit rate:   84.4%
+    error rate: 1.2%
+
+[info] detailed results → outputs/full_eval/finetuned_ergative/
+
+════════════════════════════════════════════════
+ SUMMARY
+════════════════════════════════════════════════
+[baseline] full devtest  BLEU=10.67  chrF=49.78
+[baseline] ergative subset  BLEU=10.74  chrF=49.69
+  ERG hit=52.7%  error=6.2%
+  ABS hit=83.3%  error=1.4%
+[finetuned] full devtest  BLEU=11.80  chrF=51.94
+[finetuned] ergative subset  BLEU=11.91  chrF=51.85
+  ERG hit=52.7%  error=4.5%
+  ABS hit=84.4%  error=1.2%
+
+[info] detailed outputs → outputs/full_eval/

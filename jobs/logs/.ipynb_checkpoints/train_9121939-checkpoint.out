@@ -1,0 +1,12 @@
+[info] device=cpu
+[info] loading datasets...
+[info] downloading https://object.pouta.csc.fi/Tatoeba-Challenge-v2023-09-26/eus-spa.tar
+[info] extracting /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nnling_data/tatoeba_spa_eus/eus-spa.tar
+[info] downloading https://raw.githubusercontent.com/UniversalDependencies/UD_Basque-BDT/master/eu_bdt-ud-train.conllu
+[info] downloading https://raw.githubusercontent.com/UniversalDependencies/UD_Basque-BDT/master/eu_bdt-ud-dev.conllu
+[info] downloading https://raw.githubusercontent.com/UniversalDependencies/UD_Basque-BDT/master/eu_bdt-ud-test.conllu
+[info] translation=99606  supertagging=5396
+[info] loading facebook/nllb-200-distilled-600M...
+[info] 13126 steps/epoch  262520 total planned steps
+
+── epoch 0 / 19 ──

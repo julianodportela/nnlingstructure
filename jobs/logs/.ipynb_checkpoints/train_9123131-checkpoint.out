@@ -1,0 +1,7 @@
+[info] device=cpu
+[info] loading datasets...
+[info] translation=99606  supertagging=5396
+[info] loading facebook/nllb-200-distilled-600M...
+[info] 13126 steps/epoch  262520 total planned steps
+
+── epoch 0 / 19 ──

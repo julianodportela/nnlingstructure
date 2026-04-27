@@ -1,0 +1,5 @@
+torch: 2.11.0+cu128
+cuda compiled: 12.8
+cuda available: True
+[PASS] device: NVIDIA RTX 5000 Ada Generation
+[PASS] Safe to submit train.sh

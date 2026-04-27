@@ -1,0 +1,61 @@
+[cuda] OK  device=NVIDIA RTX 5000 Ada Generation  torch=2.11.0+cu128
+[info] device=cuda
+[info] loading datasets...
+[info] translation=99606  supertagging=5396
+[info] loading facebook/nllb-200-distilled-600M...
+[info] 13126 steps/epoch  262520 total planned steps
+
+── epoch 0 / 19 ──
+[epoch 0] train_loss=1.0816
+[epoch 0] evaluating on FLORES-200 dev...
+[epoch 0] FLORES dev  BLEU=11.06  chrF=50.88
+[ckpt] saved epoch 0 → /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/epoch_0
+[ckpt] best → epoch 0
+
+── epoch 1 / 19 ──
+[epoch 1] train_loss=0.7037
+[epoch 1] evaluating on FLORES-200 dev...
+[epoch 1] FLORES dev  BLEU=11.30  chrF=51.21
+[ckpt] saved epoch 1 → /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/epoch_1
+[ckpt] best → epoch 1
+
+── epoch 2 / 19 ──
+[epoch 2] train_loss=0.6510
+[epoch 2] evaluating on FLORES-200 dev...
+[epoch 2] FLORES dev  BLEU=11.29  chrF=51.42
+[epoch 2] no improvement  patience=1/3
+[ckpt] saved epoch 2 → /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/epoch_2
+
+── epoch 3 / 19 ──
+[epoch 3] train_loss=0.6096
+[epoch 3] evaluating on FLORES-200 dev...
+[epoch 3] FLORES dev  BLEU=11.61  chrF=51.64
+[ckpt] saved epoch 3 → /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/epoch_3
+[ckpt] best → epoch 3
+
+── epoch 4 / 19 ──
+[epoch 4] train_loss=0.5772
+[epoch 4] evaluating on FLORES-200 dev...
+[epoch 4] FLORES dev  BLEU=11.18  chrF=51.33
+[epoch 4] no improvement  patience=1/3
+[ckpt] saved epoch 4 → /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/epoch_4
+
+── epoch 5 / 19 ──
+[epoch 5] train_loss=0.5488
+[epoch 5] evaluating on FLORES-200 dev...
+[epoch 5] FLORES dev  BLEU=11.07  chrF=51.39
+[epoch 5] no improvement  patience=2/3
+[ckpt] saved epoch 5 → /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/epoch_5
+
+── epoch 6 / 19 ──
+[epoch 6] train_loss=0.5251
+[epoch 6] evaluating on FLORES-200 dev...
+[epoch 6] FLORES dev  BLEU=10.99  chrF=51.07
+[epoch 6] no improvement  patience=3/3
+[ckpt] saved epoch 6 → /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/epoch_6
+[info] early stopping after epoch 6
+
+[info] loading best checkpoint for final devtest eval...
+[info] running FLORES-200 devtest eval...
+[result] FLORES devtest  BLEU=11.59  chrF=51.98
+[info] outputs written to outputs/finetuned/

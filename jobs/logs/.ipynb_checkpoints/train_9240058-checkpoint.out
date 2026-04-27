@@ -1,0 +1,9 @@
+[cuda] OK  device=NVIDIA RTX 5000 Ada Generation  torch=2.11.0+cu128
+[info] checkpoint dir: /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/run_20260422_185316
+[info] device=cuda
+[info] loading datasets...
+[info] translation=99606  supertagging=5396
+[info] loading facebook/nllb-200-distilled-600M...
+[info] 13126 steps/epoch  262520 total planned steps
+
+── epoch 0 / 19 ──

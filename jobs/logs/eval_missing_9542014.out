@@ -1,0 +1,43 @@
+[cuda] OK  device=NVIDIA RTX 5000 Ada Generation  torch=2.11.0+cu128
+
+=== [1/3] Ergative-absolutive eval — weight_sweep_050 (tw=0.5) ===
+[info] device=cuda
+[info] loading model from /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/weight50_20260424_061057/best...
+[info] loaded 950 test cases from eval/ergative_test.json
+
+── Ergative-Absolutive Alignment Evaluation ──
+  n=950  BLEU=11.93  chrF=51.84
+  Ergative sentences (112):
+    hit rate:   54.5%
+    error rate: 6.2%
+  Absolutive sentences (946):
+    hit rate:   83.7%
+    error rate: 1.5%
+
+[info] detailed results → outputs/ablations/weight_sweep_050_ergative/
+
+=== [2/3] FLORES-200 devtest — mtl_run1_tw08 (tw=0.8) ===
+[info] device=cuda
+[info] loaded 1012 FLORES-200 devtest pairs
+[info] loading model: /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/best
+[result] BLEU = 11.80
+[result] chrF = 51.94
+[info] wrote outputs to outputs/ablations/mtl_run1_tw08
+
+=== [3/3] Ergative-absolutive eval — mtl_run1_tw08 (tw=0.8) ===
+[info] device=cuda
+[info] loading model from /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/best...
+[info] loaded 950 test cases from eval/ergative_test.json
+
+── Ergative-Absolutive Alignment Evaluation ──
+  n=950  BLEU=11.91  chrF=51.85
+  Ergative sentences (112):
+    hit rate:   52.7%
+    error rate: 4.5%
+  Absolutive sentences (946):
+    hit rate:   84.4%
+    error rate: 1.2%
+
+[info] detailed results → outputs/ablations/mtl_run1_tw08_ergative/
+
+EVAL_DONE=1

@@ -1,0 +1,8 @@
+[pipeline-1] waiting for training run 1 (job 9190201)...
+[pipeline-1] training run 1 done
+[pipeline-1] eval run 1 submitted as job 9239570
+[pipeline-1] eval run 1 done
+[pipeline-1] outputs saved to outputs/full_eval_run1/
+[pipeline-1] training run 2 submitted as job 9240058
+Submitted batch job 9240059
+[pipeline-1] pipeline_2 submitted — done

@@ -1,0 +1,20 @@
+[ablations] translation-only training: job 9322391
+[ablations] weight-sweep training (tw=0.5): job 
+[ablations] waiting for translation-only job 9322391...
+[ablations] translation-only training done
+[ablations] translation-only checkpoint: /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/trans_only_20260423_140824/best
+[ablations] translation-only eval: job 9400293
+[ablations] waiting for weight-sweep job ...
+[ablations] weight-sweep training done
+[ablations] weight-sweep checkpoint: 
+[ablations] ERROR: no weight-sweep checkpoint found — skipping eval
+[ablations] waiting for eval job 9400293...
+
+════════════════════════════════════════════════
+ ABLATION SUMMARY
+════════════════════════════════════════════════
+  MTL run2 (tw=0.65)         BLEU=11.64  chrF=51.80  erg_hit=55.4%  erg_err=5.4%
+  translation-only           BLEU=11.61  chrF=51.81  erg_hit=51.8%  erg_err=4.5%
+  weight-sweep tw=0.5        BLEU=n/a  chrF=n/a  erg_hit=n/a  erg_err=n/a
+
+[ablations] done — outputs in outputs/ablations/

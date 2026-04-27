@@ -1,0 +1,24 @@
+[cuda] OK  device=NVIDIA RTX 5000 Ada Generation  torch=2.11.0+cu128
+=== FLORES-200 devtest (translation_only) ===
+[info] device=cuda
+[info] loaded 1012 FLORES-200 devtest pairs
+[info] loading model: /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/trans_only_20260423_140824/best
+[result] BLEU = 11.61
+[result] chrF = 51.81
+[info] wrote outputs to outputs/ablations/translation_only
+=== Ergative-absolutive eval (translation_only) ===
+[info] device=cuda
+[info] loading model from /home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/trans_only_20260423_140824/best...
+[info] loaded 950 test cases from eval/ergative_test.json
+
+── Ergative-Absolutive Alignment Evaluation ──
+  n=950  BLEU=11.72  chrF=51.71
+  Ergative sentences (112):
+    hit rate:   51.8%
+    error rate: 4.5%
+  Absolutive sentences (946):
+    hit rate:   84.2%
+    error rate: 1.3%
+
+[info] detailed results → outputs/ablations/translation_only_ergative/
+EVAL_DONE=1
