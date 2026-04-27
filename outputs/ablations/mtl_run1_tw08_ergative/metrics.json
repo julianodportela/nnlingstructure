@@ -1,0 +1,13 @@
+{
+  "n_total": 950,
+  "n_erg_sentences": 112,
+  "n_abs_sentences": 946,
+  "bleu": 11.90592663089901,
+  "bleu_signature": "nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp|version:2.6.0",
+  "chrf": 51.845060419560596,
+  "chrf_signature": "nrefs:1|case:mixed|eff:yes|nc:6|nw:0|space:no|version:2.6.0",
+  "ergative_hit_rate": 0.5267857142857143,
+  "ergative_error_rate": 0.044642857142857144,
+  "absolutive_hit_rate": 0.8435517970401691,
+  "absolutive_error_rate": 0.011627906976744186
+}

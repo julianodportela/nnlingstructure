@@ -1,0 +1,11 @@
+{
+  "model": "facebook/nllb-200-distilled-600M",
+  "split": "devtest",
+  "n": 1012,
+  "num_beams": 4,
+  "batch_size": 8,
+  "bleu": 10.671885860565254,
+  "bleu_signature": "nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp|version:2.6.0",
+  "chrf": 49.77791022313593,
+  "chrf_signature": "nrefs:1|case:mixed|eff:yes|nc:6|nw:0|space:no|version:2.6.0"
+}

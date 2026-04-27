@@ -6,8 +6,8 @@ venv/
 /data/
 
 # Model caches / run artifacts
-/outputs/
 *.log
+**/.ipynb_checkpoints/
 
 # SLURM job logs
 jobs/logs/

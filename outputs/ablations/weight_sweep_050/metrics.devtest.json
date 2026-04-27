@@ -1,0 +1,18 @@
+{
+  "model": "facebook/nllb-200-distilled-600M",
+  "split": "devtest",
+  "n": 1012,
+  "num_beams": 4,
+  "batch_size": 8,
+  "tatoeba_limit": 100000,
+  "translation_only": false,
+  "translate_weight": 0.5,
+  "supertag_fmt": "supertag+deprel",
+  "supertag_loss_weight": 1.0,
+  "lr": 2e-05,
+  "best_dev_bleu": 11.745015314109583,
+  "bleu": 11.845310529735803,
+  "bleu_signature": "nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp|version:2.6.0",
+  "chrf": 51.94427023204196,
+  "chrf_signature": "nrefs:1|case:mixed|eff:yes|nc:6|nw:0|space:no|version:2.6.0"
+}

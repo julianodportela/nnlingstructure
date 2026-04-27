@@ -1,0 +1,11 @@
+{
+  "model": "/home/ling3850_jdp69/scratch_ling3850/ling3850_jdp69/nllb_checkpoints/trans_only_20260423_140824/best",
+  "split": "devtest",
+  "n": 1012,
+  "num_beams": 4,
+  "batch_size": 8,
+  "bleu": 11.610239708914792,
+  "bleu_signature": "nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp|version:2.6.0",
+  "chrf": 51.81487397341847,
+  "chrf_signature": "nrefs:1|case:mixed|eff:yes|nc:6|nw:0|space:no|version:2.6.0"
+}
