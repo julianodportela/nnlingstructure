@@ -7,3 +7,4 @@ sentencepiece>=0.2
 accelerate>=0.28
 tqdm
 conllu>=4.5
+stanza>=1.7
