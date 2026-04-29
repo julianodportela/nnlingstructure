@@ -77,6 +77,7 @@ def main():
                 f"labels={tuple(batch['labels'].shape)} "
                 f"forced_bos={batch['forced_bos_token_id'].tolist()}"
             )
+            # Replace -100 for decoding preview.
             first_labels = batch["labels"][0].clone()
             first_labels[first_labels == -100] = tokenizer.pad_token_id
             print(

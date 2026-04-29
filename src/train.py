@@ -203,18 +203,16 @@ def train_one_epoch(
 
         outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
 
-        # Per-token loss with -100 positions automatically zeroed by ignore_index.
+        # ignore_index=-100 zeros out padding positions before we average per-example.
         B, T, V = outputs.logits.shape
         per_token = loss_fct(
             outputs.logits.reshape(B * T, V),
             labels.reshape(B * T),
         ).reshape(B, T)
 
-        # Average each example over its non-padding tokens.
         non_pad = (labels != -100).float()
         per_example = (per_token * non_pad).sum(-1) / non_pad.sum(-1).clamp(min=1)
 
-        # Apply configurable per-task loss weight before averaging across the batch.
         weights = torch.tensor(
             [1.0 if t == TASK_TRANSLATE else supertag_loss_weight for t in tasks],
             dtype=torch.float32,

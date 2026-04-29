@@ -1,18 +1,10 @@
-"""Annotate the Basque side of Tatoeba Es-Eu pairs using stanza's Basque model.
+"""Annotate Tatoeba Es-Eu Basque sentences with stanza's eu pipeline.
 
-Run this once as a preprocessing step before spinoff training:
-
-    python src/spinoff/annotate_tatoeba.py \
-        --data-dir  $SCRATCH/nnling_data \
-        --output    $SCRATCH/nnling_data/tatoeba_annotated.jsonl \
-        --limit     100000 \
-        --fmt       supertag+deprel
-
-Writes one JSON record per line:
+Writes one JSON record per line to --output:
   {"src_es": "...", "tgt_eu": "...", "annotation": "word/UPOS|FEATS/deprel ..."}
 
-The script resumes from where it left off if the output file already exists,
-so interrupted SLURM jobs can be resubmitted unchanged.
+Resumes from an existing partial output file if interrupted.
+Run once before src/train_spinoff.py.
 """
 from __future__ import annotations
 

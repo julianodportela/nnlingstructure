@@ -22,6 +22,7 @@ from data.ud_treebank import download_ud_basque_bdt, UD_FILES
 
 FLORES_URL = "https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz"
 FLORES_ROOT = "flores200_dataset"
+# Only nominals bear overt case morphology in Basque.
 TARGET_UPOS = {"NOUN", "PROPN", "PRON"}
 
 
@@ -44,11 +45,9 @@ def build_ud_lookup(
 ) -> tuple[set[str], set[str], dict[str, list[str]], dict[str, list[str]]]:
     """Return (erg_only, abs_only, erg_counterparts, abs_counterparts).
 
-    erg_only: word forms that appear *exclusively* with Case=Erg across all UD splits.
-    abs_only: word forms that appear *exclusively* with Case=Abs across all UD splits.
-    erg_counterparts[form]: absolutive forms sharing the same lemma (i.e. the wrong
-        form a model would produce if it drops the ergative marking).
-    abs_counterparts[form]: ergative forms sharing the same lemma.
+    *_only: forms appearing exclusively with Case=Erg/Abs across all UD splits.
+    *_counterparts: same-lemma forms in the opposite case (the wrong form a model
+    would produce if it confuses ergative-absolutive marking).
     """
     ud_dir = download_ud_basque_bdt(data_dir)
 

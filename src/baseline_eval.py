@@ -32,7 +32,6 @@ def pick_device() -> torch.device:
 
 
 def ensure_flores(data_dir: Path) -> Path:
-    """Download and extract the official FLORES-200 tarball if not already present."""
     root = data_dir / FLORES_ROOT_DIR
     if (root / "dev" / f"{SRC_LANG}.dev").exists():
         return root

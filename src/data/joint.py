@@ -1,13 +1,7 @@
-"""Joint MTL dataset: translation + supertagging.
+"""Joint MTL dataset and NLLB-aware collator for translation + supertagging.
 
-Provides a PyTorch-compatible interleaved iterator over two datasets (translation
-and supertagging), each example tagged with its task. A collator tokenises using
-the NLLB tokenizer and sets the correct forced_bos / src_lang for each task.
-
-For the supertagging task we keep source and target language both as Basque
-(`eus_Latn`) so that the encoder sees Basque input and the decoder generates
-the supertag sequence — NLLB has no dedicated supertag language code, so we
-reuse the target language of the treebank.
+For supertagging, both src_lang and tgt_lang are eus_Latn — NLLB has no
+supertag language code, so we reuse the treebank's target language.
 """
 from __future__ import annotations
 
@@ -35,13 +29,7 @@ class JointExample:
 
 
 class JointMTLDataset(Dataset):
-    """Interleave parallel translation pairs with supertagging pairs.
-
-    Sampling is weighted: at each index we pick from the translation or
-    supertagging pool with probability proportional to `translate_weight` /
-    (1 - weight). This gives a deterministic virtual length equal to the sum of
-    both pools, while letting the caller control the task mix via the weight.
-    """
+    """Deterministically interleaves translation and supertagging examples at a configurable ratio."""
 
     def __init__(
         self,
@@ -94,28 +82,13 @@ class JointMTLDataset(Dataset):
 
 
 def model_inputs(batch: dict) -> dict:
-    """Return only the keys that Seq2SeqLM.forward() accepts.
-
-    The collator attaches `task` and `forced_bos_token_id` for training-loop
-    use, but passing them to model(**batch) raises an unexpected-keyword error.
-    Call this before the forward pass:
-
-        outputs = model(**model_inputs(batch))
-    """
+    """Strip collator-only keys (task, forced_bos_token_id) before model(**batch)."""
     return {k: batch[k] for k in ("input_ids", "attention_mask", "labels")}
 
 
 def build_joint_collator(tokenizer, max_length: int = 256):
-    """Return a collator that tokenises a batch of JointExamples.
-
-    Groups examples by src_lang so the tokenizer's src_lang / forced_bos is set
-    correctly per sub-batch. The collator returns a dict with:
-      - input_ids, attention_mask, labels  — model training inputs
-      - task                               — list of "translate"/"supertag" for loss routing
-      - forced_bos_token_id               — per-example BOS token for generation
-
-    Pass the batch through model_inputs(batch) before model(**...) to strip the
-    non-model keys.
+    """NLLB-aware collator: groups by src_lang before tokenizing, returns input_ids /
+    attention_mask / labels plus task and forced_bos_token_id for training-loop use.
     """
 
     pad_id = tokenizer.pad_token_id
@@ -151,7 +124,6 @@ def build_joint_collator(tokenizer, max_length: int = 256):
                 tasks.append(ex.task)
                 forced_bos.append(tokenizer.convert_tokens_to_ids(ex.tgt_lang))
 
-        # Pad groups to the max shape across groups.
         def _pad(tensors: list[torch.Tensor], pad_value: int) -> torch.Tensor:
             max_len = max(t.shape[1] for t in tensors)
             padded = []

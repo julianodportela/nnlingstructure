@@ -1,11 +1,7 @@
-"""Tatoeba Translation Challenge: Spanish -> Basque parallel pairs.
+"""Tatoeba Challenge Es-Eu loader (Spanish→Basque).
 
-Downloads the release tarball from the Tatoeba Challenge CSC Pouta mirror
-(the canonical public source used by Tiedemann 2020). Avoids HuggingFace
-gated datasets. The pair directory `eus-spa` (ISO codes in alphabetical
-order) contains `*.src` = Basque and `*.trg` = Spanish; we swap at load
-time to yield Spanish->Basque, matching the translation direction used in
-the baseline eval.
+The archive names the pair dir eus-spa (alphabetical ISO) with src=Basque,
+trg=Spanish; this loader swaps at read time to yield Spanish→Basque pairs.
 """
 from __future__ import annotations
 
@@ -69,11 +65,7 @@ def _find_split_files(out_dir: Path, split: str) -> tuple[Path, Path]:
 
 
 def _read_lines(path: Path, limit: int | None = None) -> list[str]:
-    """Stream lines from a file (gzipped if `.gz`), stopping early at `limit`.
-
-    Tatoeba train.src.gz/train.trg.gz are hundreds of MB compressed with tens
-    of millions of lines, so a full read is wasteful when sampling a subset.
-    """
+    """Stream lines from a file (gzipped if .gz); stops at limit to avoid loading the full ~5M-line train split."""
     opener = gzip.open if path.suffix == ".gz" else open
     out: list[str] = []
     with opener(path, "rt", encoding="utf-8") as f:

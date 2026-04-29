@@ -1,11 +1,7 @@
-"""Basque Universal Dependency Treebank (UD_Basque-BDT) loader.
+"""UD_Basque-BDT loader: produces (sentence, supertag_sequence) pairs for MTL.
 
-Produces seq2seq-style (input_text, supertag_target) pairs for MTL with NLLB.
-A supertag combines the UPOS tag with all morphological features (FEATS column)
-from the CONLLU file, e.g. `Etxera/NOUN|Case=All|Number=Sing`. This encodes
-syntactic category + morphosyntactic information without requiring a full parser.
-
-Downloads the treebank from the UniversalDependencies GitHub mirror if missing.
+Supertag format: `word/UPOS|FEATS[/deprel]` per token, space-joined.
+Downloads from UniversalDependencies GitHub on first use.
 """
 from __future__ import annotations
 
@@ -43,7 +39,6 @@ def download_ud_basque_bdt(data_dir: Path) -> Path:
 
 
 def _linearize(tokens: list[dict], fmt: ParseFormat) -> str:
-    """Turn a CONLLU sentence's token list into a target string for seq2seq."""
     parts: list[str] = []
     for tok in tokens:
         if isinstance(tok["id"], tuple):
@@ -76,12 +71,7 @@ class ParseExample:
 
 
 class BasqueUDDataset(Dataset):
-    """Basque UD Treebank formatted as seq2seq supertagging pairs.
-
-    Each item yields {"source": sentence_text, "target": linearized_supertags}.
-    Default fmt="supertag" emits UPOS+FEATS per token, e.g.:
-        "Etxera/NOUN|Case=All|Number=Sing joango/VERB|Aspect=Prosp|..."
-    """
+    """Basque UD Treebank as seq2seq supertagging pairs: {"source": text, "target": supertag_str}."""
 
     def __init__(
         self,
