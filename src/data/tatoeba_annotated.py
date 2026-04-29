@@ -1,13 +1,4 @@
-"""Annotated Tatoeba dataset for spinoff MTL training.
-
-Reads the JSONL produced by src/spinoff/annotate_tatoeba.py. Each record:
-  src_es     – Spanish source sentence
-  tgt_eu     – Basque target sentence (original Tatoeba text)
-  annotation – space-joined supertag string (same format as BasqueUDDataset)
-
-TatoebaAnnotatedDataset yields (Basque_sentence, annotation) pairs and is a
-drop-in replacement for BasqueUDDataset in JointMTLDataset.
-"""
+"""Drop-in for BasqueUDDataset; reads JSONL from src/spinoff/annotate_tatoeba.py."""
 from __future__ import annotations
 
 import json
@@ -17,10 +8,6 @@ from torch.utils.data import Dataset
 
 
 class TatoebaAnnotatedDataset(Dataset):
-    """Basque supertagging pairs derived from stanza-annotated Tatoeba sentences.
-
-    Each __getitem__: {"source": basque_sentence, "target": annotation_string}
-    """
 
     def __init__(self, path: Path, limit: int | None = None) -> None:
         path = Path(path)
