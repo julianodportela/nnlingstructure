@@ -15,36 +15,42 @@ instrumental suffixes, SOV word order).
 ## Results
 
 All models evaluated on FLORES-200 `devtest` (1,012 Spanish→Basque sentences).
-The ergative-absolutive subset covers 950 sentences with at least one
-UD-attested case-marked form.
+The ergative-absolutive subset covers 950 of those sentences whose Basque references
+contain at least one UD-attested unambiguously case-marked form (112 with ergative
+forms, 946 with absolutive forms; overlap permitted).
 
-### FLORES-200 devtest
+`tw` = translate weight (fraction of translation examples in the joint dataset mix).
+Best fine-tuned value per column in **bold**.
+
+### FLORES-200 devtest (n=1,012)
 
 | Model | BLEU | chrF | Δ BLEU |
 |---|---|---|---|
 | NLLB-200 baseline (unmodified) | 10.67 | 49.78 | — |
 | Fine-tuned, translation-only | 11.61 | 51.81 | +0.94 |
 | Fine-tuned, MTL tw=0.65 (main run) | 11.64 | 51.80 | +0.97 |
-| Fine-tuned, MTL tw=0.80 | **11.80** | **51.94** | **+1.13** |
-| Fine-tuned, MTL tw=0.50 | 11.85 | 51.94 | +1.18 |
+| Fine-tuned, MTL tw=0.80 | 11.80 | **51.94** | +1.13 |
+| Fine-tuned, MTL tw=0.50 | **11.85** | **51.94** | +1.18 |
 
-`tw` = translation weight (fraction of translation examples in the joint dataset mix).
-
-### Ergative-absolutive case-marking accuracy
+### Ergative-absolutive case-marking accuracy (n=950 subset)
 
 | Model | ERG hit | ERG err | ABS hit | ABS err |
 |---|---|---|---|---|
 | NLLB-200 baseline | 52.7% | 6.25% | 83.3% | 1.37% |
-| Translation-only | 51.8% | 4.46% | 84.2% | 1.27% |
-| MTL tw=0.65 | **55.4%** | 5.36% | 84.2% | 0.95% |
-| MTL tw=0.80 | 52.7% | 4.46% | **84.4%** | 1.16% |
+| Translation-only | 51.8% | **4.46%** | 84.2% | 1.27% |
+| MTL tw=0.65 | **55.4%** | 5.36% | 84.2% | **0.95%** |
+| MTL tw=0.80 | 52.7% | **4.46%** | **84.4%** | 1.16% |
 | MTL tw=0.50 | 54.5% | 6.25% | 83.7% | 1.48% |
 
-**ERG hit** = fraction of test sentences where the expected ergative form appears in the hypothesis.
+**ERG hit** = fraction of sentences where the expected ergative form appears in the hypothesis.
 **ERG err** = fraction where the wrong-case counterpart appears instead.
 
-MTL with tw=0.65 gives the largest ergative hit-rate improvement (+2.7 pp over baseline),
-confirming that the supertagging auxiliary task specifically helps with agentive case marking.
+The aggregate FLORES-200 metrics show fine-tuning lifts BLEU/chrF by ≈ +1 BLEU and +2 chrF
+regardless of whether the supertagging objective is included, but the ergative subset reveals
+a dissociation: translation-only fine-tuning *degrades* ergative recall (52.7% → 51.8%), while
+MTL tw=0.65 is the only configuration to improve it (52.7% → 55.4%, +2.7 pp). This indicates
+that the supertagging auxiliary task contributes a targeted morphosyntactic effect that
+aggregate metrics fail to register.
 
 ---
 
@@ -98,9 +104,10 @@ sbatch jobs/train.sh
 
 Trains NLLB-200-distilled-600M for up to 20 epochs with joint cross-entropy
 loss on:
-- **Translation**: Tatoeba Es→Eu, 100k pairs (80% translation weight by default in the main run; tw=0.65 was used for the final run)
+- **Translation**: Tatoeba Es→Eu, 100k pairs
 - **Supertagging**: UD_Basque-BDT train split (~5,396 sentences), target format `supertag+deprel`
 
+The main run (`jobs/train.sh`) uses `--translate-weight 0.65` (a 65/35 translation/supertag mix).
 Per-epoch checkpoints are saved to `$SCRATCH/nllb_checkpoints/run_<timestamp>/`.
 The best checkpoint (highest FLORES-200 dev BLEU) is copied to `best/`.
 Final devtest metrics are written to `outputs/finetuned/metrics.devtest.json`.
@@ -110,8 +117,8 @@ Key flags for `src/train.py`:
 | flag | default | description |
 |---|---|---|
 | `--tatoeba-limit` | `100000` | Number of Tatoeba training pairs |
-| `--translate-weight` | `0.8` | Fraction of translation examples in the joint mix |
-| `--supertag-fmt` | `supertag` | Target format; `supertag+deprel` adds dependency relation (recommended) |
+| `--translate-weight` | `0.8` | Fraction of translation examples in the joint mix (overridden to `0.65` in the main `jobs/train.sh`) |
+| `--supertag-fmt` | `supertag` | Target format; `supertag+deprel` adds dependency relation (used by the main run, recommended) |
 | `--supertag-loss-weight` | `1.0` | Loss weight for supertagging relative to translation |
 | `--lr` | `2e-5` | Learning rate (cosine schedule with 500-step warmup) |
 | `--patience` | `3` | Early-stopping patience on FLORES-200 dev BLEU; `999` to disable |
@@ -168,21 +175,28 @@ sbatch jobs/eval_ablation.sh $SCRATCH/nllb_checkpoints/trans_only_run/best trans
 
 ## Architecture
 
+A single NLLB-200 encoder–decoder (one set of weights) is fine-tuned on two
+sequence-to-sequence tasks. The task is implicit in the source language:
+Spanish input triggers translation, Basque input triggers supertagging.
+
 ```
-Spanish source
-     │
-     ▼
-┌─────────────────────────────────────┐
-│   NLLB-200-distilled-600M encoder   │  ← shared across both tasks
-└─────────────────────────────────────┘
-     │                        │
-     ▼ (translate task)       ▼ (supertag task)
-┌──────────────┐     ┌──────────────────────┐
-│ Basque trans.│     │ Basque sentence input│
-│    decoder   │     │  → annotation decoder│
-└──────────────┘     └──────────────────────┘
-     │                        │
-  Basque text         word/UPOS|FEATS/deprel
+   Translation example                Supertagging example
+   src_lang=spa_Latn                  src_lang=eus_Latn
+   ─────────────────────              ─────────────────────
+   "El hombre comió                   "Gizonak sagarra
+    la manzana."                       jan zuen."
+        │                                    │
+        ▼                                    ▼
+   ┌─────────────────────────────────────────────────┐
+   │   NLLB-200-distilled-600M encoder–decoder       │
+   │   (shared weights, single forward pass)         │
+   └─────────────────────────────────────────────────┘
+        │                                    │
+        ▼                                    ▼
+   "Gizonak sagarra                   "Gizonak/NOUN|Case=Erg|
+    jan zuen."                         Number=Sing/nsubj
+                                       sagarra/NOUN|Case=Abs|
+                                       Number=Sing/obj …"
 ```
 
 **Joint dataset**: `JointMTLDataset` interleaves translation pairs (Tatoeba)
@@ -220,10 +234,13 @@ Sacrebleu signatures for reproducibility:
 ### Ergative-absolutive alignment (linguistically-targeted)
 
 `eval/ergative_test.json` is built by `src/build_ergative_testset.py` by:
-1. Extracting unambiguous `Case=Erg` and `Case=Abs` forms from UD_Basque-BDT
-   (1,518 ergative forms, 3,976 absolutive forms across 950 FLORES-200 sentences)
-2. Building counterpart maps: for each ergative form, the absolutive
-   counterpart sharing the same lemma, and vice versa
+1. Extracting word forms that appear *exclusively* with `Case=Erg` (or `Case=Abs`)
+   across all UD_Basque-BDT splits (~1,518 unambiguous ergative forms,
+   ~3,976 unambiguous absolutive forms)
+2. Filtering FLORES-200 devtest to the 950 sentences whose Basque references contain
+   at least one such unambiguous form (112 with ergative forms, 946 with absolutive)
+3. Building counterpart maps: for each ergative form, the absolutive form sharing
+   the same lemma, and vice versa
 
 At evaluation time, for each test sentence:
 - **Hit**: expected case-marked form appears in the hypothesis
@@ -288,26 +305,35 @@ sbatch jobs/pipeline_spinoff.sh
 │   ├── train_spinoff.py            ← [spinoff] training script
 │   └── spinoff/
 │       └── annotate_tatoeba.py     ← [spinoff] stanza annotation preprocessor
-└── outputs/                        ← eval results (git-ignored, see below)
+└── outputs/                        ← committed eval results (see below)
 ```
 
 ### outputs/ structure
+
+The `outputs/` directory is committed to the repo so all reported numbers are
+reproducible without re-running the experiments. Devtest subdirectories contain
+hypothesis, reference, and source files alongside `metrics.devtest.json`;
+ergative subdirectories contain `metrics.json` (aggregate scores) and
+`results.json` (per-sentence hits/errors).
 
 ```
 outputs/
 ├── baseline/                       ← unmodified NLLB-200 on FLORES devtest
 ├── finetuned/                      ← main MTL run (tw=0.65, supertag+deprel)
-├── full_eval/                      ← baseline + finetuned + ergative eval
-├── full_eval_run1/                 ← run 1 (tw=0.8) full eval
-├── ablations/
-│   ├── translation_only/           ← translation-only fine-tune
-│   ├── translation_only_ergative/
-│   ├── weight_sweep_050/           ← MTL tw=0.5
-│   ├── weight_sweep_050_ergative/
-│   ├── mtl_run1_tw08/              ← MTL tw=0.8 (run 1)
-│   └── mtl_run1_tw08_ergative/
-└── spinoff/                        ← [spinoff] stanza-annotated Tatoeba MTL
+├── full_eval/                      ← baseline + finetuned + ergative eval (final)
+├── full_eval_run1/                 ← earlier run with tw=0.8 (kept for provenance)
+└── ablations/
+    ├── translation_only/           ← translation-only fine-tune
+    ├── translation_only_ergative/
+    ├── weight_sweep_050/           ← MTL tw=0.5
+    ├── weight_sweep_050_ergative/
+    ├── mtl_run1_tw08/              ← MTL tw=0.8 (run 1, full devtest)
+    └── mtl_run1_tw08_ergative/
 ```
+
+The spinoff experiment (stanza-annotated Tatoeba MTL) has training/eval scripts
+in [src/spinoff/](src/spinoff/) and [jobs/](jobs/) but was not run for the final report;
+no `outputs/spinoff*/` directories are committed.
 
 ---
 
